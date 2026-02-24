@@ -1,0 +1,28 @@
+# Architecture Documentation
+
+## Model Overview
+
+The ensemble model consists of three parallel backbone branches, each enhanced with CBAM attention, fused via concatenation, and terminated with a dense classification head.
+
+## Attention Mechanisms
+
+### Channel Attention (Squeeze-and-Excitation)
+- Global Average Pool → FC(C/r) → ReLU → FC(C) → Sigmoid → Scale
+- Ratio `r=8` by default
+
+### Spatial Attention
+- Channel avg + max pool → Concat → Conv2D(7×7) → Sigmoid → Scale
+
+### CBAM (Combined)
+Channel attention is applied first, then spatial attention.
+
+## Two-Phase Training
+
+| Phase | Backbone | Learning Rate | Purpose |
+|-------|----------|---------------|---------|
+| 1 | Frozen | 1e-3 | Train classification head |
+| 2 | Top 20 layers unfrozen | 1e-4 | Fine-tune for domain adaptation |
+
+## Feature Fusion
+
+Backbone outputs are L2-normalized via BatchNormalization before concatenation. The fused vector passes through Dense(512) → BN → Dropout(0.5) → Dense(256) → BN → Dropout(0.3) → Softmax.
